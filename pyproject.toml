@@ -1,0 +1,16 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "latexhelper"
+author = "Pierre Bernatchez"
+author-email = "pbz@ogopogo.biz"
+home-page = "http://www.bernatchez.net/"
+classifiers = [ "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",]
+description-file = "README.rst"
+requires-python= ">=3.6.9"
+
+[tool.flit.scripts]
+rstdocs = "latexhelper.format:docs_rst_to_pdf"
+gen_exercise= "latexhelper.preamble:gen_exercise"

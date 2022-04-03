@@ -1,0 +1,2 @@
+This file just exists so that the subdirectory is known to git
+even when there are no files in it but this one.

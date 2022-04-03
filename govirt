@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# bash trick to obtain a clean absolute path to this script.
+#
+pushd `dirname $0` >/dev/null
+SCRIPTPATH=`pwd -P`
+popd >/dev/null
+#
+# Establish the virtual envrionment context for the current project
+#######################################################
+MYPROGNAME=`basename $0`
+# get .py files for our scripts here (same place as animtest)
+MYDIR="${SCRIPTPATH}"
+MYBASENAME=$(basename "${MYDIR}")
+MYENVDIR="${HOME}/${MYBASENAME}_venv"
+MYACTIVATE="${MYENVDIR}/bin/activate"
+if [[ -f "${MYACTIVATE}" ]] ; then
+    echo '## This is the command you need'
+    echo source "${MYACTIVATE}"
+else
+    echo No "${MYACTIVATE}" file 
+fi
+
