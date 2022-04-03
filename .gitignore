@@ -2,3 +2,4 @@
 latex_helper_requirements-*.txt
 dist/*
 pdf_docs/*.pdf
+__pycache__/*
