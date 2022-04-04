@@ -20,6 +20,23 @@ from latexhelper.handystuff import cmd_to_string, whichem, vdate_now
 
 import io
 
+def proof_title(category, proof_number):
+    """Get a replacement title string for a proof"""
+    # proof_title = "copie pour vérification: {}  x{:02d}".format(args.category, args.proof)
+
+    replacements = {
+        "calculus": "Copie pour vérification: Calcul {}",
+        "statistics_and_probability": "Copie pour vérification: Statistiques et probabilité {}",
+        "functions": "Copie pour vérification: Fonctions {}",
+        "template": "Copie pour vérification: template {}",
+        "algebra_and_numbers": "Copie pour vérification: Algèbre et Nombres {}",
+        "geometry_and_trigonometry": "Copie pour vérification: Géométrie et Trigonométrie {}"
+    }
+    qname="x{:02d}.tex".format(proof_number)
+    sub = replacements[category].format(qname)
+    return sub
+    
+
 def default_attributes():
     """Default values of attributes to filled in for each document"""
     alist = [("author", "Anonyme"),
@@ -259,6 +276,8 @@ PROGRAM: {MYPROGNAME}
     mxgroup.add_argument('-a', '--all-questions',
                          dest='all_questions', action='store_true', default=False,
                          help="generate a document with all the available questions from the category")
+    mxgroup.add_argument('-p', '--proof', dest="proof", type=int,
+                         help="generate a single proof document for the given question number")
     mxgroup.add_argument('-q', '--question-numbers', dest='question_numbers', 
                          nargs='+', type=int,
                          help="generate a document with this list of question numbers from the category")
@@ -291,14 +310,16 @@ PROGRAM: {MYPROGNAME}
             latexfile.write(xbegin)
             latexfile.write(xtitle)
             latexfile.write(xnewpage)
-            latexfile.write(xnogdc)
-            for animport in nogdc_list:
-                latexfile.write(animport)
-                latexfile.write('\n')
-            latexfile.write(xgdc)
-            for animport in gdc_list:
-                latexfile.write(animport)
-                latexfile.write('\n')
+            if len(nogdc_list) > 0:
+                latexfile.write(xnogdc)
+                for animport in nogdc_list:
+                    latexfile.write(animport)
+                    latexfile.write('\n')
+            if len(gdc_list) > 0:
+                latexfile.write(xgdc)
+                for animport in gdc_list:
+                    latexfile.write(animport)
+                    latexfile.write('\n')
             latexfile.write(xend)
     if args.filename is None:
         targetname="{}_{}".format(args.category,date_stamp)
@@ -308,6 +329,16 @@ PROGRAM: {MYPROGNAME}
     if args.question_numbers is not None:
         qdirname=os.path.join(default_basedir, args.category)
         qs = numbs_to_questions(args.question_numbers, qdirname)
+        fulltarget = os.path.join(output_directory, "{}.tex".format(targetname))
+        generate_latex(fulltarget, qs,
+                       category=args.category, basedir=default_basedir, localconfig=localconfig)
+        
+    if args.proof is not None:
+        sub_title = proof_title(args.category, args.proof)
+        localconfig['title'][args.category]=sub_title
+        targetname="{}_x{:02d}_{}".format(args.category, args.proof,date_stamp)        
+        qdirname=os.path.join(default_basedir, args.category)
+        qs = numbs_to_questions([args.proof], qdirname)
         fulltarget = os.path.join(output_directory, "{}.tex".format(targetname))
         generate_latex(fulltarget, qs,
                        category=args.category, basedir=default_basedir, localconfig=localconfig)
@@ -322,7 +353,7 @@ PROGRAM: {MYPROGNAME}
             generate_latex(fulltarget, fnames,
                            category=args.category, basedir=default_basedir, localconfig=localconfig)
             
-    if args.type_of_document == 'pdf':
+    if args.type_of_document == 'pdf' or args.proof is not None:
         acmd = make_pdflatex_command(fulltarget, outdir=output_directory)
         acstring = cmd_to_string(acmd)
         print("{}: invoking: {}".format(MYPROGNAME, acstring), file=sys.stderr)
