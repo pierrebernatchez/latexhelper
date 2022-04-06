@@ -47,7 +47,11 @@ def default_attributes():
                         "functions":"Éxercices de révision: Fonctions",
                         "template":"Exercise template",
                         "algebra_and_numbers":"Éxercices de révision: Algèbre et Nombres",
-                        "geometry_and_trigonometry":"Éxercices de révision: Géométrie et Trigonométrie"})]
+                        "geometry_and_trigonometry":"Éxercices de révision: Géométrie et Trigonométrie"}),
+             ("credentials", "/home/ubuntu/s3conf_ogopogo"),
+             ("publish", "s3://www.ogopogo.biz/mathsansmystere/"),
+             ("fetch", "https://s3.amazonaws.com/www.ogopogo.biz/mathsansmystere/"),
+             ("with_logo", False)]
     return dict(alist)
  
 MYBUNDLE=mybundlename()
@@ -58,14 +62,28 @@ NAMEDICT={'MYMODULENAME': MYMODULENAME,
           'MYBUNDLE':MYBUNDLE}
 
  
-cmdmap=whichem(['pdflatex'])
+cmdmap=whichem(['pdflatex','s3cmd','echo'])
 FULLPDFLATEX=cmdmap['pdflatex']
+FULLS3CMD=cmdmap['s3cmd']
+FULLECHO=cmdmap['echo']
 
 def make_pdflatex_command(full_latexfilename, outdir=None):
     if outdir is not None:
         mycommand = [FULLPDFLATEX, '-output-directory', outdir, full_latexfilename]
     else:
         mycommand = [FULLPDFLATEX, full_latexfilename]
+    return mycommand
+
+def make_publish_command(full_pdfilename, pubtarget=None, credentials=None):
+    basepdfname=os.path.basename(full_pdfilename)
+    if pubtarget is None:
+        mycommand = [FULLECHO, basepdfname, ' Not published because no target given.']
+    elif credentials is None:
+        targetfile = os.path.join(pubtarget,basepdfname) 
+        mycommand = [FULLS3CMD, 'put', full_pdfilename, targetfile]
+    else:
+        targetfile = os.path.join(pubtarget,basepdfname) 
+        mycommand = [FULLS3CMD, '-c', credentials, 'put', full_pdfilename, targetfile]
     return mycommand
 
 # pdflatex -output-directory out_docs out_docs/algebra_and_numbers_2022-03-30T20\:48.tex
@@ -77,9 +95,12 @@ def assert_directory(adir):
         print("{}: fatal error: {}".format(MYPROGNAME, emsg), file=sys.stderr)
         raise ValueError("Assert failed:"+emsg)
     
-def exercise_title(config, category):
+def exercise_title(config, category, with_logo=False):
     """Compose the document title lines to match the config file, and the category"""
-    tline="\\title{" + config['title'][category]+ "}\n"
+    if with_logo:
+        tline="\\title{\\begin{center}\\includegraphics[scale=0.5]{ib-logo.png}\\end{center} " + config['title'][category]+ "}\n"
+    else:
+        tline="\\title{ " + config['title'][category]+ "}\n"
     authorline="\\author{"  + config['author'] + "\\thanks{" + config['thanks'] + "}}\n"
     return tline + authorline + "\\date{\\today}\n" + "\\maketitle\n"
 
@@ -232,8 +253,28 @@ PROGRAM: {MYPROGNAME}
 
         Compose a latex exercise document by combining a predetermined
         preamble with user specific markup for title and author and
-        with user selected exercise questions.
+        with user selected exercise questions and compile a pdf document
+        from that.
+
+    Examples:
+
+       {MYPROGNAME} -c calculus -a
+  
+           Emits a pdf document named calculus_YYYY-MM-DD.pdf that
+           contains all the questions in the calculus category.
+ 
+       {MYPROGNAME} -c algebra_and_numbers -q 1 3 9 11 -f todays_exercise
     
+           Emits a pdf document named todays_exercise_YYYY-MM-DD.pdf that
+           contains collection questions 1,3,9,11 (as Q1, Q2, Q3, Q4)
+
+       {MYPROGNAME} -c geometry_and_trigonometry -p 13
+
+            Emits a single question exercise pdf document named
+            geometry_and_trigonometry_x13_2022-04-05.pdf for
+            proof reading question snippets.
+
+ 
 """.format(**NAMEDICT)
     date_stamp = vdate_now()
     configfilename="~/.{}.cfg".format(MYBUNDLE)
@@ -298,7 +339,7 @@ PROGRAM: {MYPROGNAME}
         nogdc_mapper = curry_import_mapper(category, comment_filter="GDC:NO")
         xpreamble=exercise_preamble(fulldirname)
         xbegin= "\\begin{document}\n"
-        xtitle = exercise_title(localconfig, category)
+        xtitle = exercise_title(localconfig, category, with_logo=localconfig["with_logo"])
         xnewpage = "\\newpage\n"
         xend="\\end{document}\n"
         xgdc="\\section*{\\textbf{Calculatrice Graphique Permise}}\n"
@@ -361,6 +402,20 @@ PROGRAM: {MYPROGNAME}
         pdftarget = os.path.join(output_directory, "{}.pdf".format(targetname))
         print("{}: emitted: {}".format(MYPROGNAME,fulltarget), file=sys.stderr)
         print("{}: emitted: {}".format(MYPROGNAME,pdftarget), file=sys.stderr)
+        pubtarget = localconfig['publish']
+        credentials = localconfig['credentials']
+        acmd = make_publish_command(pdftarget, pubtarget=pubtarget, credentials=credentials)  
+        acstring = cmd_to_string(acmd)
+        if pubtarget is not None:
+            # dont need to emit the echo command emitted when pubtarget is none
+            print("{}: invoking: {}".format(MYPROGNAME, acstring), file=sys.stderr)
+        subprocess.check_call(acmd)
+        if pubtarget is not None:
+            fetchurl = os.path.join(localconfig['fetch'], os.path.basename(pdftarget))
+            print("{}: URL: {}".format(MYPROGNAME,fetchurl), file=sys.stderr)
+        
+
+    # FULLPS3CMD
         
         
         

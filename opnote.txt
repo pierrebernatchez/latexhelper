@@ -1,0 +1,6 @@
+# The following symbolic links to  mathsansmystere project directories
+# exist only to allow us to test without changing directory to that project.
+
+ln -s ../mathsansmystere/images/ images
+ln -s ../mathsansmystere/tex tex
+ln -s ../mathsansmystere/out_docs/ out_docs

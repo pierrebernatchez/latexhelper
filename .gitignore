@@ -3,3 +3,6 @@ latex_helper_requirements-*.txt
 dist/*
 pdf_docs/*.pdf
 __pycache__/
+tex/
+out_docs/
+images/
