@@ -4,82 +4,78 @@ Set up a project private package index
 Overview
 --------
 
-    At this writing we are only working with the single package
-    **animbboard** and there is only one person maintaining it.
-    Because of that our current practise is to generate versioned
-    tarballs and to 'pip install' from those.
+    This describes setting up a private package index as an
+    alternative to the public PyPi index for sharing our package.
 
-    This describes setting up a private package index as a more
-    convenient alternative to using tarballs directly.  We will want
-    to do this if/when we have several maintainers or we are
-    maintaining several packages.
-
-    Nevertheless, this python software of ours needs to be compatile
-    with using the standard python package index, and at this writing
-    we are not ready to make it available to the general public.
-
-    So to ensure we are staying compatible with pypi, we need to run
-    it through the process, but with a private packaging index.
+    Our software needs to be compatile with using the standard public
+    python package index.  At this writing we are not yet ready to
+    make it available to the general public. So to ensure we are
+    staying compatible with PyPi, we need to run it through the
+    process, but with a private packaging index.
+    
     **devpi** to the rescue ('https://www.devpi.net/') . It is a
     conforming package index system we can use to serve our private
     package index.
 
 
-Configuring the SW for  devpi
------------------------------
+Configure a virtual environment for devpi
+-----------------------------------------
 
 This howto is derived from the following tutorial:
 
 <https://devpi.net/docs/devpi/devpi/stable/+doc/quickstart-releaseprocess.html>_
 
-We are working with python3. We want to setup up a virtual environment
-that conforms to our assumptions, and then install within that.  We
-call the environment devpi_venv.
 
-We create a directory for our setup first.
+Start by setting up our desired python environment.  On ubuntu we need
+to install **python3.8-venv** for the rest of these commands to work.
+First remember to get out of whatever virtual environment you are in.
 
-.. code-block:: bash
-
-    mkdir ${HOME}/devpi_setup
-    cd ${HOME}/devpi_setup
-
-We install the bare essentials.
 
 .. code-block:: bash
-    
-    python3 -m venv devpi_venv
-    source devpi_venv/bin/activate
+		
+    deactivate                            # escape current virtual env
+    cd ${HOME}
+    sudo apt-get install python3.8-venv  # needed on ubuntu
+    python3.8 -m venv devpi_venv    
+    source devpi_venv/bin/activate    
     python -m pip install -U pip
     pip install wheel
     pip install setuptools
     pip install twine
 
-A Restructured Text format viewer I find usefull.
+Note:
 
-.. code-block:: bash
-		
-    pip install restview
-
-You invoke it and it keeps re-rendering your file as you modify
-it. Like this:
-
+   These lines may help  if you run into trouble with 'setuptools_rust'
+   when installing twine.
+   
 .. code-block:: bash
 
-    restview README.rst
+    pip3.8 install setuptools-rust
+    pip install --upgrade pip
+    
 
-
-I also find rst2pdf convenient for generating pdf copies of .rst documuents.
-
-.. code-block:: bash
-		
-    snap install rst2pdf
-    rst2pdf doc/privatepypi.rst -o reformatted_docs/privatepypi.pdf
 		
 Set up devpi server on our laptop
 ---------------------------------
 
 Install devpi client and web server
 The non web server - devpi-server - is  installed as a consequence.
+
+newblock
+
+.. code-block:: bash
+		
+    pip install -q -U devpi-server
+    devpi-server --version
+    devpi-init
+    mkdir devpi-stuff
+    cd devpi-stuff
+    devpi-gen-config # generates a bunch of config files for different scenarios
+    
+    
+
+		
+
 
 .. code-block:: bash
 		
