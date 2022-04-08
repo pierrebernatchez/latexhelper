@@ -35,115 +35,125 @@ First remember to get out of whatever virtual environment you are in.
 		
     deactivate                            # escape current virtual env
     cd ${HOME}
-    sudo apt-get install python3.8-venv  # needed on ubuntu
+    sudo apt install python3.8-venv  # needed on ubuntu
     python3.8 -m venv devpi_venv    
-    source devpi_venv/bin/activate    
-    python -m pip install -U pip
-    pip install wheel
-    pip install setuptools
-    pip install twine
+    source devpi_venv/bin/activate
+    python -m pip install --no-cache-dir -U pip
+    pip install --no-cache-dir setuptools-rust
+    pip install --upgrade pip                    # No sure if you need this
+    pip install --no-cache-dir wheel
+    pip install --no-cache-dir twine
 
-Note:
+.. raw:: pdf
 
-   These lines may help  if you run into trouble with 'setuptools_rust'
-   when installing twine.
-   
-.. code-block:: bash
-
-    pip3.8 install setuptools-rust
-    pip install --upgrade pip
+    PageBreak oneColumn
     
-
 		
 Set up devpi server on our laptop
 ---------------------------------
 
-Install devpi client and web server
-The non web server - devpi-server - is  installed as a consequence.
-
-newblock
+Install devpi client and web server The non web server -
+devpi-server - is installed as a consequence.
 
 .. code-block:: bash
 		
-    pip install -q -U devpi-server
-    devpi-server --version
+    pip install -U devpi-web devpi-client # devpi-server is installed implictly here
     devpi-init
-    mkdir devpi-stuff
-    cd devpi-stuff
-    devpi-gen-config # generates a bunch of config files for different scenarios
-    
+    mkdir devpi-stuff  # 
+    cd devpi-stuff     #
+    devpi-gen-config   # generates a bunch of config files for different scenarios
+    cd ..
     
 
+We are using the 'supervisor' package to manage the startup/shutdown
+of our servers. The above generates a configuration file which is
+pretty close to what we want called "supervisor-devpi.conf".  But we
+created one called "/etc/supervisor/conf.d/ubuntu_devpi_server.conf"
+that suits our system configuration a bit better.  These are its
+contents:
+
+.. code-block:: bash
 		
+   ;;; privat package index server
+   [program:ubuntu_devpi_server]
+   directory=/home/ubuntu
+   user = ubuntu
+   command=/home/ubuntu/devpi_venv/bin/devpi-server
+   autostart = false
+   exitcodes=0
+   autorestart=unexpected
+   priority = 300
+   startsecs = 5
+   redirect_stderr = true
 
+   
+If you want to be open up to the internet rather than just localhost
+you are going to want to change your command line above to this.
 
 .. code-block:: bash
 		
-    pip install -U devpi-web devpi-client
+   command=/home/ubuntu/devpi_venv/bin/devpi-server --host=0.0.0.0 --port=3141
+   
 
-Initialize an empty index (at /var/devpi-server by default)
-Note I had a permissions problem with the init one.
-So first I manually do this:
-
-.. code-block:: bash
-
-   sudo mkdir  /var/devpi-server
-   sudo chown ubuntu:ubuntu /var/devpi-server
+We need to get the running supervisor to reread its configurations and
+update its in-memory view of configurations.  This will make the new
+server known to supervisor.
 
 .. code-block:: bash
 
-    devpi-init
+   sudo supervisorctl reread
+   sudo supervisorctl update
 
-We want a config file for supervisor daemon to use.
-This will generate a bunch of config files under the current
-directory, the one we want included.
+Since our configuration has autostart = false, we need to start it.
+   
+.. code-block:: bash
+
+   sudo supevisorctl start ubuntu_devpi_server
+
+If and when we want to stop it we can use this command.  But for now
+we will leave it running.
+   
+.. code-block:: bash
+
+   sudo supevisorctl stop ubuntu_devpi_server
+
+
+Point the devpi client to our running devpi server
 
 .. code-block:: bash
 
-    cd ${HOME}/devpi_setup
-    devpi-gen-config
+   devpi use http://localhost:3141		
 
-This gives us the file gen-config/supervisor-devpi.conf
-to copy to /etc/supervisor/conf so that we can start
-up the server.  I started by editing it to say
-start=False so that it would need to be started
-up manually.  Then I copied it to the right place for it.
+Add our own user, and login as that user.
 
 .. code-block:: bash
 
-    sudo cp gen-config/supervisor-devpi.conf /etc/supervisor/conf.d/devpi-server.conf
-    sudo supervisorctl update
-    sudo supervisorctl start devpi-server
+   devpi user -c pbernatchez password=somepassword
+   devpi login pbernatchez --password=somepassword
 
-Create a user, login as him and create the 'dev' index
+Create a "dev" index that uses the root/pypi cache as base so that all pypy.org packages
+will appear on that index, and finally we use the new index.
 
 .. code-block:: bash
 
-    devpi user -c pbernatchez password=foobar
-    devpi login pbernatchez --password=foobar
-    devpi index -c dev bases=root/pypi
-
-Use our dev index
-    
-.. code-block:: bash
-
-    devpi use testuser/dev
+   devpi index -c dev bases=root/pypi
+   devpi use pbernatchez/dev
 
 Now we can make use of the private index.
-
 We are using flit to publish to our index and it
 relies on the file : ~/.pypirc.
 
-So we make an entry there for our index.  I gave it the name 'mypypi':
+So we make an entry there for our index.  I gave it the name 'latexhelperpypi'.
+My .pypirc file looks like this:
 
 ::
-   
+
     [distutils]
     index-servers =
-       mypypi
+       latexhelperpypi
        testpypi
 
-    [mypypi]
+    [latexhelperpypi]
     repository = http://localhost:3141/pbernatchez/dev
     username = pbernatchez
 
@@ -151,16 +161,17 @@ So we make an entry there for our index.  I gave it the name 'mypypi':
     repository = https://test.pypi.org/legacy/
     username = pbernatchez
 
-From here on, using flit, we can refer it as 'mypypi'.
+
+From here on, using flit, we can refer it as 'latexhelperpypi'.
 
 .. code-block:: bash
 
     deactivate
-    cd /home/ubuntu/repos/animbboard
-    source venv/bin/activate
+    cd /home/ubuntu/collab/latexhelper
+    source /home/ubuntu/latexhelper_venv/bin/activate
     flit build
-    flit publish --repository mypypi
-    pip uninstall  animbboard
-    pip install -i http://localhost:3141/pbernatchez/dev  animbboard
+    flit publish --repository latexhelperpypi
+    pip uninstall  latexhelper
+    pip install -i http://localhost:3141/pbernatchez/dev  latexhelper
 
 
