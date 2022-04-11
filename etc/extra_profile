@@ -1,0 +1,16 @@
+#
+# Added by for private package index usage
+#
+if [ -f "${HOME}/devpi_venv/bin/activate" ] ; then
+   source "${HOME}/devpi_venv/bin/activate"
+fi
+#
+# Added by for private package index usage
+#
+if [ -x "/usr/bin/ec2metadata" ] ; then
+   MYIP=`/usr/bin/ec2metadata --public-ipv4`
+   MYGROUP=`/usr/bin/ec2metadata --security-groups`
+   echo \###################################
+   echo \# ${MYIP} '->' ${MYGROUP}
+   echo \###################################
+fi
