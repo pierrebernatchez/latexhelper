@@ -122,7 +122,7 @@ Point the devpi client to our running devpi server
 
 .. code-block:: bash
 
-   devpi use http://localhost:3141		
+   devpi use http://mathsansmyster.bernatchez.net:3141		
 
 Add our own user, and login as that user.
 
@@ -154,7 +154,7 @@ My .pypirc file looks like this:
        testpypi
 
     [latexhelperpypi]
-    repository = http://localhost:3141/pbernatchez/dev
+    repository = http://mathsansmystere.bernatchez.net:3141/pbernatchez/dev
     username = pbernatchez
 
     [testpypi]
@@ -172,6 +172,11 @@ From here on, using flit, we can refer it as 'latexhelperpypi'.
     flit build
     flit publish --repository latexhelperpypi
     pip uninstall  latexhelper
-    pip install -i http://localhost:3141/pbernatchez/dev  latexhelper
+
+    pip install --trusted-host mathsansmystere.bernatchez.net -i http://mathsansmystere.bernatchez.net:3141/pbernatchez/dev latexhelper
+
+    # OR if your index is more properly accessibl via SSL
+    
+    pip install -i https://mathsansmystere.bernatchez.net:3141/pbernatchez/dev latexhelper
 
 
