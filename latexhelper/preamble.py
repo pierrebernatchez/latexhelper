@@ -13,14 +13,13 @@ import tempfile
 import shutil
 import time
 import uuid
-import json
 
 from latexhelper.handystuff import SmartDescriptionFormatter, myprogname, mybundlename
 from latexhelper.handystuff import cmd_to_string, whichem, vdate_now
 
 import io
 
-def proof_title(category, proof_number):
+def deprecated_proof_title(category, proof_number):
     """Get a replacement title string for a proof"""
     # proof_title = "copie pour vérification: {}  x{:02d}".format(args.category, args.proof)
 
@@ -40,14 +39,26 @@ def proof_title(category, proof_number):
 def default_attributes():
     """Default values of attributes to filled in for each document"""
     alist = [("author", "Anonyme"),
-             ("thanks", "Les questions sont tirées de la collection math sans mystère qui sont à leur tour dérivées d'examens de l'IB de 2007, 2010, 2011, 2012, 2018"),
+             ("thanks", "Les questions de cet exercise sont tirées par l'auteur de la collection 'Math Sans Mystère'.  La collection à son tour est dérivée d'examens de l'IB de 2007, 2010, 2011, 2012, 2018"),
              ("comment", "The title field is a map from category name to category title value. It is ok to modify the title value but not the category name."), 
              ("title", {"calculus":"Éxercices de révision: Calcul",
-                        "statistics_and_probability":"Exercices de révision: Statistiques et probabilité",
+                        "statistics_and_probability":"Éxercices de révision: Statistiques et probabilité",
                         "functions":"Éxercices de révision: Fonctions",
                         "template":"Exercise template",
                         "algebra_and_numbers":"Éxercices de révision: Algèbre et Nombres",
                         "geometry_and_trigonometry":"Éxercices de révision: Géométrie et Trigonométrie"}),
+             ("alltitle", {"calculus":"Liste Complète: Calcul",
+                           "statistics_and_probability":"Liste Complète: Statistiques et probabilité",
+                           "functions":"Liste Complète: Fonctions",
+                           "template":"Exercise template",
+                           "algebra_and_numbers":"Liste Complète: Algèbre et Nombres",
+                           "geometry_and_trigonometry":"Liste Complète: Géométrie et Trigonométrie"}),
+             ("prooftitle", {"calculus":"Exemple pour approuver: Calcul",
+                             "statistics_and_probability":"Exemple pour approuver: Statistiques et probabilité",
+                             "functions":"Exemple pour approuver: Fonctions",
+                             "template":"Exercise template",
+                             "algebra_and_numbers":"Exemple pour approuver: Algèbre et Nombres",
+                             "geometry_and_trigonometry":"Exemple pour approuver: Géométrie et Trigonométrie"}),
              ("credentials", "/home/ubuntu/s3conf_ogopogo"),
              ("publish", "s3://www.ogopogo.biz/mathsansmystere/"),
              ("fetch", "https://s3.amazonaws.com/www.ogopogo.biz/mathsansmystere/"),
@@ -197,11 +208,11 @@ def maybe_create_config(fullname, verbose=False):
 def curry_import_mapper(category,comment_filter=None):
     """Return a function which maps a qestion name to an import line for a specific category"""
     def unfiltered_map(qname):
-        """Funcion maps question name (basename) in the category's tex directory) to import line"""
+        """Funcion maps question name (basename in the category's tex directory) to import line"""
         qimport_string = "\\import{./tex/" + category + "/}{" + qname + "}"
         return qimport_string
     def filtered_map(qname):
-        """Funcion maps question name (basename) in the category's tex directory) to import line"""
+        """Funcion maps question name (basename in the category's tex directory) to import line"""
         snippetname=os.path.join("./tex", category, qname)
         with open(snippetname, "r") as snipin:
             aline = snipin.readline().strip()
@@ -239,6 +250,37 @@ def numbs_to_questions(raw_numb_list, question_dir):
     return existing_questions
     
 
+def generate_latex(latexfilename, questions, category=None, basedir=None, localconfig=None):
+    """Generate the latex markup for the document and write it to the given filename"""
+    fulldirname=os.path.join(basedir, category)
+    any_mapper = curry_import_mapper(category,comment_filter=None)
+    gdc_mapper = curry_import_mapper(category, comment_filter="GDC:YES")
+    nogdc_mapper = curry_import_mapper(category, comment_filter="GDC:NO")
+    xpreamble=exercise_preamble(fulldirname)
+    xbegin= "\\begin{document}\n"
+    xtitle = exercise_title(localconfig, category, with_logo=localconfig["with_logo"])
+    xnewpage = "\\newpage\n"
+    xend="\\end{document}\n"
+    xgdc="\\section*{\\textbf{Calculatrice Graphique Permise}}\n"
+    xnogdc="\\section*{\\textbf{Calculatrice Graphique Non Permise}}\n"
+    gdc_list = [ ast for ast in  [gdc_mapper(anm) for anm in questions] if len(ast) >0 ]
+    nogdc_list = [ ast for ast in  [nogdc_mapper(anm) for anm in questions] if len(ast) >0 ]
+    with open(latexfilename, "w") as latexfile:
+        latexfile.write(xpreamble)
+        latexfile.write(xbegin)
+        latexfile.write(xtitle)
+        latexfile.write(xnewpage)
+        if len(nogdc_list) > 0:
+            latexfile.write(xnogdc)
+            for animport in nogdc_list:
+                latexfile.write(animport)
+                latexfile.write('\n')
+        if len(gdc_list) > 0:
+            latexfile.write(xgdc)
+            for animport in gdc_list:
+                latexfile.write(animport)
+                latexfile.write('\n')
+        latexfile.write(xend)
     
 def gen_exercise():
     """Let the user supply a list of questions, generate a latex marked
@@ -260,23 +302,25 @@ PROGRAM: {MYPROGNAME}
 
        {MYPROGNAME} -c calculus -a
   
-           Emits a pdf document named calculus_YYYY-MM-DD.pdf that
-           contains all the questions in the calculus category.
+           Emits a pdf document named 'calculus.pdf' that contains all
+           the questions in the calculus category.
  
-       {MYPROGNAME} -c algebra_and_numbers -q 1 3 9 11 -f todays_exercise
+       {MYPROGNAME} -c algebra_and_numbers -q 1 3 9 11 
     
-           Emits a pdf document named todays_exercise_YYYY-MM-DD.pdf that
+           Emits a pdf document named algebra_and_numbers_UUID.pdf that
            contains collection questions 1,3,9,11 (as Q1, Q2, Q3, Q4)
 
        {MYPROGNAME} -c geometry_and_trigonometry -p 13
 
             Emits a single question exercise pdf document named
-            geometry_and_trigonometry_x13_2022-04-05.pdf for
-            proof reading question snippets.
+            "geometry_and_trigonometry_x13_UUID.pdf for
+            proof reading single question snippets.
 
+       Where UUID is a Universally Unique Identifier String 36 characters long.
  
 """.format(**NAMEDICT)
     date_stamp = vdate_now()
+    uuid_stamp = str(uuid.uuid4())
     configfilename="~/.{}.cfg".format(MYBUNDLE)
     fullconfigfile= os.path.expanduser(configfilename)
     localconfig = maybe_create_config(fullconfigfile,verbose=True)    
@@ -310,6 +354,11 @@ PROGRAM: {MYPROGNAME}
     
     parser = argparse.ArgumentParser(prog=MYPROGNAME, description=longdesc,
                                      formatter_class=SmartDescriptionFormatter)
+    default_author = localconfig['author']
+    parser.add_argument('-A', '--author', dest='author', default=default_author,
+                        help="Author of the exercise (default '{}')".format(default_author))
+    parser.add_argument('-T', '--title', dest='title',
+                        help="Override the default title (per category)")
     parser.add_argument('-c',
                         dest='category', choices = catagories, default=default_category,
                         help="math category (default {})".format(default_category))
@@ -325,48 +374,34 @@ PROGRAM: {MYPROGNAME}
     parser.add_argument('-o', '--output-directory', dest="output_directory", default=default_outdir,
                         help="Directory where documents will be emitted (default {})".format(default_outdir))
     parser.add_argument('-f', '--filename', dest="filename", 
-                        help="Filename  (without extension) to use for output instead of category name")
+                        help="Use this instead of category name in output filename")
     parser.add_argument('-t', '--type-of-document', dest="type_of_document",
                         choices=doc_formats, default=doc_formats[0],
                         help="Type to output - either latex or both latex and pdf - (default {})".format(doc_formats[0]))
     args = parser.parse_args()
+    localconfig['author'] = args.author
+    # override exercise title depending on circumstance
+    if args.all_questions:
+        localconfig['title'][args.category]=localconfig['alltitle'][args.category]
+        
+    if args.proof is not None:
+        localconfig['title'][args.category]=localconfig['prooftitle'][args.category]
+        
+    if args.title is not None:
+        localconfig['title'][args.category]=args.title
+        
     output_directory=os.path.expanduser(args.output_directory)
-    def generate_latex(latexfilename, questions, category=None, basedir=None, localconfig=None):
-        """Generate the latex markup for the document and write it to the given filename"""
-        fulldirname=os.path.join(basedir, category)
-        any_mapper = curry_import_mapper(category,comment_filter=None)
-        gdc_mapper = curry_import_mapper(category, comment_filter="GDC:YES")
-        nogdc_mapper = curry_import_mapper(category, comment_filter="GDC:NO")
-        xpreamble=exercise_preamble(fulldirname)
-        xbegin= "\\begin{document}\n"
-        xtitle = exercise_title(localconfig, category, with_logo=localconfig["with_logo"])
-        xnewpage = "\\newpage\n"
-        xend="\\end{document}\n"
-        xgdc="\\section*{\\textbf{Calculatrice Graphique Permise}}\n"
-        xnogdc="\\section*{\\textbf{Calculatrice Graphique Non Permise}}\n"
-        gdc_list = [ ast for ast in  [gdc_mapper(anm) for anm in questions] if len(ast) >0 ]
-        nogdc_list = [ ast for ast in  [nogdc_mapper(anm) for anm in questions] if len(ast) >0 ]
-        with open(latexfilename, "w") as latexfile:
-            latexfile.write(xpreamble)
-            latexfile.write(xbegin)
-            latexfile.write(xtitle)
-            latexfile.write(xnewpage)
-            if len(nogdc_list) > 0:
-                latexfile.write(xnogdc)
-                for animport in nogdc_list:
-                    latexfile.write(animport)
-                    latexfile.write('\n')
-            if len(gdc_list) > 0:
-                latexfile.write(xgdc)
-                for animport in gdc_list:
-                    latexfile.write(animport)
-                    latexfile.write('\n')
-            latexfile.write(xend)
+    ###was here
     if args.filename is None:
-        targetname="{}_{}".format(args.category,date_stamp)
+        targetprefix = args.category
     else:
-        targetname="{}_{}".format(args.filename,date_stamp)
+        targetprefix = args.filename
 
+    if args.all_questions :
+        targetname = targetprefix
+    else:
+        targetname = "{}_{}".format(targetprefix, uuid_stamp) 
+    
     if args.question_numbers is not None:
         qdirname=os.path.join(default_basedir, args.category)
         qs = numbs_to_questions(args.question_numbers, qdirname)
@@ -375,9 +410,9 @@ PROGRAM: {MYPROGNAME}
                        category=args.category, basedir=default_basedir, localconfig=localconfig)
         
     if args.proof is not None:
-        sub_title = proof_title(args.category, args.proof)
-        localconfig['title'][args.category]=sub_title
-        targetname="{}_x{:02d}_{}".format(args.category, args.proof,date_stamp)        
+        #sub_title = proof_title(args.category, args.proof)
+        # localconfig['title'][args.category]=sub_title
+        targetname="{}_x{:02d}_{}".format(args.category, args.proof,uuid_stamp)        
         qdirname=os.path.join(default_basedir, args.category)
         qs = numbs_to_questions([args.proof], qdirname)
         fulltarget = os.path.join(output_directory, "{}.tex".format(targetname))
@@ -415,10 +450,6 @@ PROGRAM: {MYPROGNAME}
             print("{}: URL: {}".format(MYPROGNAME,fetchurl), file=sys.stderr)
         
 
-    # FULLPS3CMD
-        
-        
-        
 if __name__ == '__main__':
     print("{}: This module intended for importing, not invoking it directly.".format(MYPROGNAME),
           file=sys.stderr)
