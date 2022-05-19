@@ -14,7 +14,7 @@ import shutil
 import time
 import uuid
 
-from handyhelper.handystuff import SmartDescriptionFormatter, myprogname, mybundlename
+from handyhelper.handystuff import SmartDescriptionFormatter, myprogname
 from handyhelper.handystuff import cmd_to_string, whichem, vdate_now
 
 import io
@@ -64,8 +64,8 @@ def default_attributes():
              ("fetch", "https://s3.amazonaws.com/www.ogopogo.biz/mathsansmystere/"),
              ("with_logo", False)]
     return dict(alist)
- 
-MYBUNDLE=mybundlename()
+
+MYBUNDLE=os.path.basename(os.path.dirname(__file__))
 MYPROGNAME=myprogname()
 MYMODULENAME, ignore= os.path.splitext(os.path.basename(__file__))
 NAMEDICT={'MYMODULENAME': MYMODULENAME,
