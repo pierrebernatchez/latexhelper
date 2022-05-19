@@ -1,16 +1,30 @@
+# This is some extra code we can paste to the end of .projile files
+# To automatically activate the virtual python environment for mathsansmystere sw
+# To jump to the cloned git hub mathsansmystere project directory
+# To emit some feedback about what server you just logged into
 #
-# Added by for private package index usage
+
 #
-if [ -f "${HOME}/devpi_venv/bin/activate" ] ; then
-   source "${HOME}/devpi_venv/bin/activate"
+# Added by for mathsansmystere usage
+#
+if [ -f "${HOME}/mathsansmystere_venv/bin/activate" ] ; then
+   source "${HOME}/mathsansmystere_venv/bin/activate"
 fi
 #
-# Added by for private package index usage
+# Added by for mathsansmystere and devpi usage
 #
 if [ -x "/usr/bin/ec2metadata" ] ; then
    MYIP=`/usr/bin/ec2metadata --public-ipv4`
    MYGROUP=`/usr/bin/ec2metadata --security-groups`
-   echo \###################################
-   echo \# ${MYIP} '->' ${MYGROUP}
-   echo \###################################
+   MYUSERDATA=`(/usr/bin/ec2metadata | /usr/bin/grep 'user-data:' | cut -s --delimiter=\' -f 2 - )`
+   echo \#############################################################
+   echo \# ${MYIP} ':' ${MYUSERDATA} ':' ${MYGROUP}
+   echo \#############################################################
+fi
+#
+# Added by for gen_exercise usage
+#
+CLONEDDIR="${HOME}/collab/mathsansmystere"
+if [ -d "${CLONEDDIR}" ] ; then
+   cd "${CLONEDDIR}"
 fi

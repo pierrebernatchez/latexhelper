@@ -1,8 +1,9 @@
-Set up a project private package index
-======================================
+========================================
+ Set up a project private package index
+========================================
 
 Overview
---------
+========
 
     This describes setting up a private package index as an
     alternative to the public PyPi index for sharing our package.
@@ -19,7 +20,7 @@ Overview
 
 
 Configure a virtual environment for devpi
------------------------------------------
+=========================================
 
 This howto is derived from the following tutorial:
 
@@ -35,12 +36,12 @@ First remember to get out of whatever virtual environment you are in.
 		
     deactivate                            # escape current virtual env
     cd ${HOME}
-    sudo apt install python3.8-venv  # needed on ubuntu
+    sudo apt install python3.8-venv       # needed on ubuntu
     python3.8 -m venv devpi_venv    
     source devpi_venv/bin/activate
     python -m pip install --no-cache-dir -U pip
     pip install --no-cache-dir setuptools-rust
-    pip install --upgrade pip                    # No sure if you need this
+    pip install --upgrade pip
     pip install --no-cache-dir wheel
     pip install --no-cache-dir twine
 
@@ -49,8 +50,10 @@ First remember to get out of whatever virtual environment you are in.
     PageBreak oneColumn
     
 		
-Set up devpi server on our laptop
----------------------------------
+Set up devpi server on our server instance
+==========================================
+(or on our laptop)
+
 
 Install devpi client and web server The non web server -
 devpi-server - is installed as a consequence.
@@ -67,18 +70,19 @@ devpi-server - is installed as a consequence.
 
 We are using the 'supervisor' package to manage the startup/shutdown
 of our servers. The above generates a configuration file which is
-pretty close to what we want called "supervisor-devpi.conf".  But we
-created one called "/etc/supervisor/conf.d/ubuntu_devpi_server.conf"
-that suits our system configuration a bit better.  These are its
-contents:
+pretty close to what we want called "supervisor-devpi.conf".  We
+created one called "ubuntu_devpi_server.conf" that suits our system
+configuration a bit better and we copied it to
+"/etc/supervisor/conf.d/" where the supervisor daemon can find it.
+These are its contents:
 
 .. code-block:: bash
-		
+
    ;;; privat package index server
    [program:ubuntu_devpi_server]
    directory=/home/ubuntu
    user = ubuntu
-   command=/home/ubuntu/devpi_venv/bin/devpi-server
+   command=/home/ubuntu/devpi_venv/bin/devpi-server --host=0.0.0.0 --port=3141
    autostart = false
    exitcodes=0
    autorestart=unexpected
@@ -87,12 +91,15 @@ contents:
    redirect_stderr = true
 
    
-If you want to be open up to the internet rather than just localhost
-you are going to want to change your command line above to this.
+
+if you don't want to serve the package index from the internet, but
+only form your localhost.  You need to replace "mathsansmyster.bernatchez.net"
+with "localhost" in all the URLs that appear in what follows.
+You also need to change the line "command" above above to this:
 
 .. code-block:: bash
 		
-   command=/home/ubuntu/devpi_venv/bin/devpi-server --host=0.0.0.0 --port=3141
+   command=/home/ubuntu/devpi_venv/bin/devpi-server
    
 
 We need to get the running supervisor to reread its configurations and
@@ -110,15 +117,14 @@ Since our configuration has autostart = false, we need to start it.
 
    sudo supevisorctl start ubuntu_devpi_server
 
-If and when we want to stop it we can use this command.  But for now
-we will leave it running.
+Not now, but If and when we want to stop it we can use this command.  
    
 .. code-block:: bash
 
    sudo supevisorctl stop ubuntu_devpi_server
 
 
-Point the devpi client to our running devpi server
+We needto point the devpi client to our running devpi server
 
 .. code-block:: bash
 

@@ -14,8 +14,8 @@ import shutil
 import time
 import uuid
 
-from latexhelper.handystuff import SmartDescriptionFormatter, myprogname, mybundlename
-from latexhelper.handystuff import cmd_to_string, whichem, vdate_now
+from handyhelper.handystuff import SmartDescriptionFormatter, myprogname, mybundlename
+from handyhelper.handystuff import cmd_to_string, whichem, vdate_now
 
 import io
 

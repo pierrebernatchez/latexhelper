@@ -22,13 +22,14 @@ Install non pip packages we are going to rely on.
 
 .. code-block:: bash
 		
-    sudo apt install rst2pdf
+    snap install rst2pdf
+    sudo apt install python3.8-venv          # on ubuntu need this for "python3.8 -m venv projectname_venv " to work
 
 
 .. code-block:: bash
     
     cd ${HOME}
-    python3 -m venv projectname_venv
+    python3.8 -m venv projectname_venv
     source ${HOME}/projectname_venv/bin/activate
 
 If we already have a correct requirements file for the project.
@@ -50,25 +51,12 @@ We install the bare essentials.
     pip install twine
     pip install flit
 
-A Restructured Text format viewer I find helpful when editing our docs.
-
-.. code-block:: bash
-		
-    pip install restview
-
-You invoke it and it keeps re-rendering your file as you modify
-it. Like this:
-
-.. code-block:: bash
-
-    restview README.rst
-
 
 Our revision control tool of choice is git.
 
-Flit works nicely with it, but it is strict about files being properly committed.
-We need to ignore any extraeneous files.  I find this a good starting point
-for ignoring files.
+Flit works nicely with it, but it is strict about files being properly
+committed.  We need to ignore all any extraeneous files.  I find this
+a good starting point for ignoring files:
 
 .gitignore contents:
 
@@ -77,5 +65,5 @@ for ignoring files.
    *~
    requirements-*.txt
    dist/*
-   pdf_docs/*
+   pdf_docs/*.pdf
    
