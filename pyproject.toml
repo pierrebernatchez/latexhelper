@@ -12,5 +12,4 @@ description-file = "README.rst"
 requires-python= ">=3.8.0"
 
 [tool.flit.scripts]
-rstdocs = "latexhelper.format:docs_rst_to_pdf"
 gen_exercise= "latexhelper.preamble:gen_exercise"
